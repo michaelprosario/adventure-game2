@@ -324,13 +324,11 @@
                 request.onupgradeneeded = (event) => {
                     db = event.target.result;
                     
-                    // Create scenes store
                     if (!db.objectStoreNames.contains(SCENES_STORE)) {
                         const scenesStore = db.createObjectStore(SCENES_STORE, { keyPath: 'id' });
                         scenesStore.createIndex('name', 'name', { unique: false });
                     }
 
-                    // Create block types store
                     if (!db.objectStoreNames.contains(BLOCK_TYPES_STORE)) {
                         const blockTypesStore = db.createObjectStore(BLOCK_TYPES_STORE, { keyPath: 'id' });
                         blockTypesStore.createIndex('name', 'name', { unique: false });
@@ -364,10 +362,8 @@
             }
 
             resize(width, height) {
-                // Create new grid with new dimensions
                 const newGrid = Array(height).fill().map(() => Array(width).fill(null));
                 
-                // Copy existing data
                 for (let y = 0; y < Math.min(this.height, height); y++) {
                     for (let x = 0; x < Math.min(this.width, width); x++) {
                         newGrid[y][x] = this.grid[y][x];
@@ -422,7 +418,6 @@
                     this.cellSize
                 );
                 
-                // Deep copy the grid
                 for (let y = 0; y < this.height; y++) {
                     for (let x = 0; x < this.width; x++) {
                         newScene.grid[y][x] = this.grid[y][x];
@@ -540,19 +535,16 @@
             }
         };
 
-        // UI Elements and Event Listeners
+        // P5.js sketch
         let p5Instance;
 
-        // P5.js sketch
         function createP5Sketch() {
             const canvasContainer = document.getElementById('canvas-container');
             
-            // Remove previous canvas if it exists
             while (canvasContainer.firstChild) {
                 canvasContainer.removeChild(canvasContainer.firstChild);
             }
             
-            // Create new p5 instance
             p5Instance = new p5((p) => {
                 let offsetX = 0;
                 let offsetY = 0;
@@ -564,8 +556,6 @@
                 p.setup = function() {
                     const canvas = p.createCanvas(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
                     canvas.parent(canvasContainer);
-                    
-                    // Load images for block types
                     preloadBlockTypeImages();
                 };
                 
@@ -577,11 +567,9 @@
                     const scene = appState.currentScene;
                     const cellSize = scene.cellSize * appState.zoomLevel;
                     
-                    // Calculate the scene dimensions
                     const sceneWidth = scene.width * cellSize;
                     const sceneHeight = scene.height * cellSize;
                     
-                    // Center the scene if it's smaller than the canvas
                     if (sceneWidth < p.width) {
                         offsetX = (p.width - sceneWidth) / 2;
                     }
@@ -589,29 +577,23 @@
                         offsetY = (p.height - sceneHeight) / 2;
                     }
                     
-                    // Ensure the scene doesn't go too far off canvas
                     offsetX = Math.min(p.width / 2, Math.max(-sceneWidth + p.width / 2, offsetX));
                     offsetY = Math.min(p.height / 2, Math.max(-sceneHeight + p.height / 2, offsetY));
                     
-                    // Draw background grid
                     p.push();
                     p.translate(offsetX, offsetY);
                     
-                    // Draw cells
                     for (let y = 0; y < scene.height; y++) {
                         for (let x = 0; x < scene.width; x++) {
                             const blockTypeId = scene.grid[y][x];
                             
                             if (blockTypeId) {
-                                // Find the block type
                                 const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
                                 
                                 if (blockType) {
-                                    // Draw the cell with the block type color or image
                                     p.fill(blockType.color);
                                     p.rect(x * cellSize, y * cellSize, cellSize, cellSize);
                                     
-                                    // If the block type has an image, draw it
                                     if (blockType.imageUrl && blockTypeImages[blockType.id]) {
                                         p.image(
                                             blockTypeImages[blockType.id],
@@ -626,24 +608,20 @@
                         }
                     }
                     
-                    // Draw grid lines if enabled
                     if (appState.showGrid) {
                         p.stroke(100);
                         p.strokeWeight(1);
                         
-                        // Vertical lines
                         for (let x = 0; x <= scene.width; x++) {
                             p.line(x * cellSize, 0, x * cellSize, scene.height * cellSize);
                         }
                         
-                        // Horizontal lines
                         for (let y = 0; y <= scene.height; y++) {
                             p.line(0, y * cellSize, scene.width * cellSize, y * cellSize);
                         }
                     }
                     
-                    // Draw a highlight where the mouse is
-                    if (appState.currentBlockType) {
+                    if (appState.currentTool === 'paint' && appState.currentBlockType) {
                         const mouseGridX = Math.floor((p.mouseX - offsetX) / cellSize);
                         const mouseGridY = Math.floor((p.mouseY - offsetY) / cellSize);
                         
@@ -670,8 +648,7 @@
                             isDragging = true;
                             lastMouseX = p.mouseX;
                             lastMouseY = p.mouseY;
-                        } else if (appState.currentScene && appState.currentBlockType) {
-                            // Handle painting or other tools
+                        } else if (appState.currentScene) {
                             handleToolAction();
                         }
                     }
@@ -679,13 +656,11 @@
                 
                 p.mouseDragged = function() {
                     if (isDragging) {
-                        // Pan the scene
                         offsetX += (p.mouseX - lastMouseX);
                         offsetY += (p.mouseY - lastMouseY);
                         lastMouseX = p.mouseX;
                         lastMouseY = p.mouseY;
-                    } else if (appState.currentScene && appState.currentBlockType) {
-                        // Handle painting or other tools
+                    } else if (appState.currentScene) {
                         handleToolAction();
                     }
                 };
@@ -693,7 +668,6 @@
                 p.mouseReleased = function() {
                     isDragging = false;
                     
-                    // Save the scene after editing
                     if (appState.isEditing && appState.currentScene) {
                         appState.isEditing = false;
                         dbOps.saveScene(appState.currentScene)
@@ -703,50 +677,41 @@
                 };
                 
                 p.mouseWheel = function(event) {
-                    // Zoom in/out with mouse wheel
                     const zoomChange = -event.delta * 0.001;
                     const newZoom = Math.max(0.1, Math.min(5, appState.zoomLevel + zoomChange));
                     
-                    // If zoom changed, update it
                     if (newZoom !== appState.zoomLevel) {
-                        // Calculate mouse position relative to the scene
                         const mouseXRelative = p.mouseX - offsetX;
                         const mouseYRelative = p.mouseY - offsetY;
                         
-                        // Apply zoom
                         const zoomRatio = newZoom / appState.zoomLevel;
                         appState.zoomLevel = newZoom;
                         
-                        // Adjust offset to zoom toward mouse position
                         offsetX = p.mouseX - mouseXRelative * zoomRatio;
                         offsetY = p.mouseY - mouseYRelative * zoomRatio;
                         
-                        // Update zoom display
                         document.getElementById('zoom-value').textContent = `${Math.round(newZoom * 100)}%`;
                         document.getElementById('zoom-level').value = newZoom;
                     }
                     
-                    // Prevent default behavior
                     return false;
                 };
                 
                 function handleToolAction() {
-                    if (!appState.currentScene || !appState.currentBlockType) return;
-                    
+                    if (!appState.currentScene) return;
+                    if (appState.currentTool === 'paint' && !appState.currentBlockType) return;
+
                     const scene = appState.currentScene;
                     const cellSize = scene.cellSize * appState.zoomLevel;
                     
-                    // Calculate grid coordinates
                     const gridX = Math.floor((p.mouseX - offsetX) / cellSize);
                     const gridY = Math.floor((p.mouseY - offsetY) / cellSize);
                     
-                    // Check if coordinates are within the grid
                     if (gridX >= 0 && gridX < scene.width && gridY >= 0 && gridY < scene.height) {
                         const brushSize = parseInt(appState.brushSize);
                         
                         switch (appState.currentTool) {
                             case 'paint':
-                                // Apply painting with brush size
                                 for (let by = 0; by < brushSize; by++) {
                                     for (let bx = 0; bx < brushSize; bx++) {
                                         const x = gridX + bx;
@@ -759,7 +724,6 @@
                                 break;
                                 
                             case 'erase':
-                                // Erase with brush size
                                 for (let by = 0; by < brushSize; by++) {
                                     for (let bx = 0; bx < brushSize; bx++) {
                                         const x = gridX + bx;
@@ -781,10 +745,8 @@
                 }
                 
                 function preloadBlockTypeImages() {
-                    // Clear existing images
                     blockTypeImages = {};
                     
-                    // Load images for each block type that has an imageUrl
                     appState.blockTypes.forEach(blockType => {
                         if (blockType.imageUrl) {
                             p.loadImage(
@@ -798,7 +760,6 @@
                     });
                 }
                 
-                // Make these functions available outside
                 p.refreshImages = preloadBlockTypeImages;
                 p.resetView = function() {
                     offsetX = 0;
@@ -812,34 +773,25 @@
         
         // UI Event Handlers
         function setupEventListeners() {
-            // New Scene Button
             document.getElementById('new-scene-btn').addEventListener('click', () => {
                 document.getElementById('new-scene-modal').style.display = 'block';
             });
             
-            // Close New Scene Modal
             document.getElementById('close-new-scene').addEventListener('click', () => {
                 document.getElementById('new-scene-modal').style.display = 'none';
             });
             
-            // Create Scene Button
             document.getElementById('create-scene-btn').addEventListener('click', createNewScene);
             
-            // Save Scene Button
             document.getElementById('save-scene-btn').addEventListener('click', saveCurrentScene);
             
-            // Load Scene Button
             document.getElementById('load-scene-btn').addEventListener('click', loadScenesList);
             
-            // Apply Grid Settings Button
             document.getElementById('apply-grid-settings').addEventListener('click', applySceneSettings);
             
-            // Duplicate Scene Button
             document.getElementById('duplicate-scene-btn').addEventListener('click', duplicateCurrentScene);
             
-            // New Block Type Button
             document.getElementById('new-block-type-btn').addEventListener('click', () => {
-                // Reset form fields
                 document.getElementById('block-type-name').value = '';
                 document.getElementById('block-type-color').value = '#3498db';
                 document.getElementById('block-image-url').value = '';
@@ -848,40 +800,32 @@
                 document.getElementById('block-interactive').checked = false;
                 document.getElementById('block-animation-frames').value = '1';
                 
-                // Show modal
                 document.getElementById('block-type-modal').style.display = 'block';
             });
             
-            // Close Block Type Modal
             document.getElementById('close-block-type').addEventListener('click', () => {
                 document.getElementById('block-type-modal').style.display = 'none';
             });
             
-            // Save Block Type Button
             document.getElementById('save-block-type-btn').addEventListener('click', saveBlockType);
             
-            // Tool Selector
             document.getElementById('tool-selector').addEventListener('change', (e) => {
                 appState.currentTool = e.target.value;
             });
             
-            // Brush Size Selector
             document.getElementById('brush-size').addEventListener('change', (e) => {
                 appState.brushSize = e.target.value;
             });
             
-            // Grid Toggle
             document.getElementById('grid-toggle').addEventListener('change', (e) => {
                 appState.showGrid = e.target.checked;
             });
             
-            // Zoom Level Slider
             document.getElementById('zoom-level').addEventListener('input', (e) => {
                 appState.zoomLevel = parseFloat(e.target.value);
                 document.getElementById('zoom-value').textContent = `${Math.round(appState.zoomLevel * 100)}%`;
             });
             
-            // Scene name input
             document.getElementById('scene-name').addEventListener('change', (e) => {
                 if (appState.currentScene) {
                     appState.currentScene.name = e.target.value;
@@ -891,14 +835,12 @@
                 }
             });
             
-            // Close modals when clicking outside
             window.addEventListener('click', (e) => {
                 if (e.target.classList.contains('modal')) {
                     e.target.style.display = 'none';
                 }
             });
             
-            // Window resize event
             window.addEventListener('resize', () => {
                 if (p5Instance) {
                     p5Instance.resizeCanvas(
@@ -946,7 +888,7 @@
         function loadScenesList() {
             dbOps.getScenes()
                 .then(scenes => {
-                    appState.scenes = scenes;
+                    appState.scenes = scenes.map(s => Object.assign(new Scene(s.id, s.name, s.width, s.height, s.cellSize), s));
                     updateScenesList();
                 })
                 .catch(err => console.error('Error loading scenes:', err));
@@ -1011,8 +953,9 @@
         
         function loadScene(id) {
             dbOps.getSceneById(id)
-                .then(scene => {
-                    if (scene) {
+                .then(sceneData => {
+                    if (sceneData) {
+                        const scene = Object.assign(new Scene(sceneData.id, sceneData.name, sceneData.width, sceneData.height, sceneData.cellSize), sceneData);
                         setCurrentScene(scene);
                     } else {
                         console.error('Scene not found:', id);
@@ -1024,7 +967,6 @@
         function setCurrentScene(scene) {
             appState.currentScene = scene;
             
-            // Update UI
             document.getElementById('scene-name').value = scene.name;
             document.getElementById('grid-width').value = scene.width;
             document.getElementById('grid-height').value = scene.height;
@@ -1032,7 +974,6 @@
             
             updateScenesList();
             
-            // Reset view in canvas
             if (p5Instance && p5Instance.resetView) {
                 p5Instance.resetView();
             }
@@ -1044,30 +985,21 @@
                 return;
             }
             
-            const widthInput = document.getElementById('grid-width');
-            const heightInput = document.getElementById('grid-height');
-            const nameInput = document.getElementById('scene-name');
-            const cellSizeInput = document.getElementById('cell-size');
+            const width = parseInt(document.getElementById('grid-width').value) || appState.currentScene.width;
+            const height = parseInt(document.getElementById('grid-height').value) || appState.currentScene.height;
+            const name = document.getElementById('scene-name').value.trim() || appState.currentScene.name;
+            const cellSize = parseInt(document.getElementById('cell-size').value) || appState.currentScene.cellSize;
             
-            const width = parseInt(widthInput.value) || appState.currentScene.width;
-            const height = parseInt(heightInput.value) || appState.currentScene.height;
-            const name = nameInput.value.trim() || appState.currentScene.name;
-            const cellSize = parseInt(cellSizeInput.value) || appState.currentScene.cellSize;
-            
-            // Update scene properties
             appState.currentScene.name = name;
             
-            // Update cell size if changed
             if (cellSize !== appState.currentScene.cellSize) {
                 appState.currentScene.cellSize = cellSize;
             }
             
-            // Resize grid if dimensions changed
             if (width !== appState.currentScene.width || height !== appState.currentScene.height) {
                 appState.currentScene.resize(width, height);
             }
             
-            // Save changes
             dbOps.saveScene(appState.currentScene)
                 .then(() => {
                     updateScenesList();
@@ -1095,31 +1027,21 @@
         }
         
         function saveBlockType() {
-            const nameInput = document.getElementById('block-type-name');
-            const colorInput = document.getElementById('block-type-color');
-            const imageUrlInput = document.getElementById('block-image-url');
-            const collisionInput = document.getElementById('block-collision');
-            const damageInput = document.getElementById('block-damage');
-            const interactiveInput = document.getElementById('block-interactive');
-            const animationFramesInput = document.getElementById('block-animation-frames');
-            
-            const name = nameInput.value.trim() || 'Untitled Block';
-            const color = colorInput.value;
+            const name = document.getElementById('block-type-name').value.trim() || 'Untitled Block';
+            const color = document.getElementById('block-type-color').value;
             
             const properties = {
-                imageUrl: imageUrlInput.value.trim(),
-                collision: collisionInput.value,
-                damage: parseInt(damageInput.value) || 0,
-                interactive: interactiveInput.checked,
-                animationFrames: parseInt(animationFramesInput.value) || 1
+                imageUrl: document.getElementById('block-image-url').value.trim(),
+                collision: document.getElementById('block-collision').value,
+                damage: parseInt(document.getElementById('block-damage').value) || 0,
+                interactive: document.getElementById('block-interactive').checked,
+                animationFrames: parseInt(document.getElementById('block-animation-frames').value) || 1
             };
             
-            // Check if we're editing an existing block type
             let blockType;
             
             if (appState.currentBlockType && 
                 document.getElementById('block-type-modal').dataset.editing === 'true') {
-                // Update existing block type
                 blockType = appState.currentBlockType;
                 blockType.name = name;
                 blockType.color = color;
@@ -1130,29 +1052,22 @@
                 blockType.animationFrames = properties.animationFrames;
                 blockType.updatedAt = new Date();
             } else {
-                // Create new block type
                 blockType = new BlockType(null, name, color, properties);
             }
             
             dbOps.saveBlockType(blockType)
                 .then(savedBlockType => {
-                    // Add to list if it's new
                     if (!appState.blockTypes.some(bt => bt.id === savedBlockType.id)) {
                         appState.blockTypes.push(savedBlockType);
                     }
                     
-                    // Set as current block type
                     selectBlockType(savedBlockType);
-                    
-                    // Update UI
                     updateBlockTypesList();
                     
-                    // Reload images if needed
                     if (p5Instance && p5Instance.refreshImages) {
                         p5Instance.refreshImages();
                     }
                     
-                    // Close modal
                     document.getElementById('block-type-modal').style.display = 'none';
                 })
                 .catch(err => console.error('Error saving block type:', err));
@@ -1164,7 +1079,6 @@
         }
         
         function editBlockType(blockType) {
-            // Populate form fields
             document.getElementById('block-type-name').value = blockType.name;
             document.getElementById('block-type-color').value = blockType.color;
             document.getElementById('block-image-url').value = blockType.imageUrl || '';
@@ -1173,10 +1087,7 @@
             document.getElementById('block-interactive').checked = blockType.interactive || false;
             document.getElementById('block-animation-frames').value = blockType.animationFrames || '1';
             
-            // Mark as editing
             document.getElementById('block-type-modal').dataset.editing = 'true';
-            
-            // Show modal
             document.getElementById('block-type-modal').style.display = 'block';
         }
         
@@ -1185,12 +1096,10 @@
             try {
                 await initDB();
                 
-                // Load block types
-                const blockTypes = await dbOps.getBlockTypes();
-                appState.blockTypes = blockTypes;
-                
-                // Create a default block type if none exists
-                if (blockTypes.length === 0) {
+                const blockTypesData = await dbOps.getBlockTypes();
+                appState.blockTypes = blockTypesData.map(bt => Object.assign(new BlockType(bt.id, bt.name, bt.color), bt));
+
+                if (appState.blockTypes.length === 0) {
                     const defaultBlockType = new BlockType(
                         null, 
                         'Wall', 
@@ -1201,40 +1110,31 @@
                     appState.blockTypes.push(defaultBlockType);
                 }
                 
-                // Select the first block type
                 if (appState.blockTypes.length > 0) {
                     appState.currentBlockType = appState.blockTypes[0];
                 }
                 
-                // Update UI
                 updateBlockTypesList();
                 
-                // Load scenes
-                const scenes = await dbOps.getScenes();
-                appState.scenes = scenes;
+                const scenesData = await dbOps.getScenes();
+                appState.scenes = scenesData.map(s => Object.assign(new Scene(s.id, s.name, s.width, s.height, s.cellSize), s));
                 updateScenesList();
                 
-                // Create a default scene if none exists
-                if (scenes.length === 0) {
+                if (appState.scenes.length === 0) {
                     const defaultScene = new Scene(null, 'Default Scene', 20, 15);
                     await dbOps.saveScene(defaultScene);
                     appState.scenes.push(defaultScene);
                     appState.currentScene = defaultScene;
                     updateScenesList();
                 } else {
-                    // Set first scene as current
-                    appState.currentScene = scenes[0];
+                    appState.currentScene = appState.scenes[0];
                 }
                 
-                // Update scene properties UI
                 if (appState.currentScene) {
                     setCurrentScene(appState.currentScene);
                 }
                 
-                // Set up event listeners
                 setupEventListeners();
-                
-                // Create P5 canvas
                 createP5Sketch();
                 
                 console.log('Application initialized successfully');
@@ -1243,7 +1143,6 @@
             }
         }
         
-        // Start the application when DOM is loaded
         document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
