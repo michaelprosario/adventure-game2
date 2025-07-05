@@ -151,6 +151,18 @@
         .property-name {
             width: 120px;
         }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        #export-preview {
+            width: 100%;
+            margin-top: 15px;
+            background-color: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -161,6 +173,7 @@
                 <button id="new-scene-btn">New Scene</button>
                 <button id="load-scene-btn">Load Scene</button>
                 <button id="save-scene-btn">Save Scene</button>
+                <button id="export-scene-btn">Export Scene</button>
             </div>
             <div id="scenes-list"></div>
         </div>
@@ -287,6 +300,57 @@
             </div>
             <div>
                 <button id="save-block-type-btn">Save Block Type</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Scene Modal -->
+    <div id="export-scene-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-export-scene">&times;</span>
+            <h3>Export Scene</h3>
+            <div>
+                <label for="export-format">Format:</label>
+                <select id="export-format">
+                    <option value="json">JSON</option>
+                    <option value="csv">CSV</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="custom-format-options" class="hidden">
+                <h4>Custom Format Options</h4>
+                <div>
+                    <label for="custom-format-template">Template:</label>
+                    <textarea id="custom-format-template" rows="6" cols="50" placeholder="Use ${x}, ${y}, ${type}, ${name}, ${color} as placeholders">// Grid data for scene: ${sceneName}
+{x: ${x}, y: ${y}, type: "${name}"}</textarea>
+                </div>
+                <div>
+                    <label for="custom-format-separator">Line Separator:</label>
+                    <input type="text" id="custom-format-separator" value=",&#10;" placeholder="e.g. comma + newline">
+                </div>
+                <div>
+                    <label for="custom-format-wrapper">Wrapper:</label>
+                    <input type="text" id="custom-format-wrapper" value="[&#10;${data}&#10;]" placeholder="e.g. [ ${data} ]">
+                </div>
+                <div>
+                    <label for="custom-format-empty">Include Empty Cells:</label>
+                    <input type="checkbox" id="custom-format-empty">
+                </div>
+            </div>
+            <div class="property-row">
+                <label for="include-metadata">Include Metadata:</label>
+                <input type="checkbox" id="include-metadata" checked>
+            </div>
+            <div class="property-row">
+                <label for="export-pretty-print">Pretty Print:</label>
+                <input type="checkbox" id="export-pretty-print" checked>
+            </div>
+            <div>
+                <button id="generate-export-btn">Generate Export</button>
+                <button id="download-export-btn" class="hidden">Download</button>
+            </div>
+            <div>
+                <textarea id="export-preview" rows="10" cols="50" readonly class="hidden"></textarea>
             </div>
         </div>
     </div>
@@ -791,6 +855,33 @@
             
             document.getElementById('duplicate-scene-btn').addEventListener('click', duplicateCurrentScene);
             
+            document.getElementById('export-scene-btn').addEventListener('click', () => {
+                if (!appState.currentScene) {
+                    alert('No scene is currently active.');
+                    return;
+                }
+                document.getElementById('export-scene-modal').style.display = 'block';
+                document.getElementById('export-preview').classList.add('hidden');
+                document.getElementById('download-export-btn').classList.add('hidden');
+            });
+            
+            document.getElementById('close-export-scene').addEventListener('click', () => {
+                document.getElementById('export-scene-modal').style.display = 'none';
+            });
+            
+            document.getElementById('export-format').addEventListener('change', (e) => {
+                const customOptions = document.getElementById('custom-format-options');
+                if (e.target.value === 'custom') {
+                    customOptions.classList.remove('hidden');
+                } else {
+                    customOptions.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('generate-export-btn').addEventListener('click', generateExport);
+            
+            document.getElementById('download-export-btn').addEventListener('click', downloadExport);
+            
             document.getElementById('new-block-type-btn').addEventListener('click', () => {
                 document.getElementById('block-type-name').value = '';
                 document.getElementById('block-type-color').value = '#3498db';
@@ -1091,6 +1182,232 @@
             document.getElementById('block-type-modal').style.display = 'block';
         }
         
+        // Scene Export Functions
+        function generateExport() {
+            if (!appState.currentScene) {
+                alert('No scene is currently active.');
+                return;
+            }
+            
+            const format = document.getElementById('export-format').value;
+            const includeMetadata = document.getElementById('include-metadata').checked;
+            const prettyPrint = document.getElementById('export-pretty-print').checked;
+            
+            let exportData;
+            
+            switch (format) {
+                case 'json':
+                    exportData = exportToJSON(includeMetadata, prettyPrint);
+                    break;
+                case 'csv':
+                    exportData = exportToCSV(includeMetadata);
+                    break;
+                case 'custom':
+                    exportData = exportToCustomFormat();
+                    break;
+                default:
+                    alert('Unsupported export format');
+                    return;
+            }
+            
+            const previewElement = document.getElementById('export-preview');
+            previewElement.value = exportData;
+            previewElement.classList.remove('hidden');
+            
+            document.getElementById('download-export-btn').classList.remove('hidden');
+        }
+        
+        function exportToJSON(includeMetadata, prettyPrint) {
+            const scene = appState.currentScene;
+            const exportObj = {
+                id: scene.id,
+                name: scene.name,
+                width: scene.width,
+                height: scene.height,
+                cellSize: scene.cellSize,
+                createdAt: scene.createdAt,
+                updatedAt: scene.updatedAt,
+                grid: []
+            };
+            
+            // Convert grid to a more portable format
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    if (blockTypeId) {
+                        const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
+                        
+                        if (blockType) {
+                            const cell = {
+                                x: x,
+                                y: y,
+                                blockTypeId: blockTypeId
+                            };
+                            
+                            if (includeMetadata) {
+                                cell.blockType = {
+                                    name: blockType.name,
+                                    color: blockType.color,
+                                    collision: blockType.collision,
+                                    damage: blockType.damage,
+                                    interactive: blockType.interactive
+                                };
+                                
+                                if (blockType.imageUrl) {
+                                    cell.blockType.imageUrl = blockType.imageUrl;
+                                }
+                                
+                                if (blockType.animationFrames > 1) {
+                                    cell.blockType.animationFrames = blockType.animationFrames;
+                                }
+                            }
+                            
+                            exportObj.grid.push(cell);
+                        }
+                    }
+                }
+            }
+            
+            return JSON.stringify(exportObj, null, prettyPrint ? 2 : 0);
+        }
+        
+        function exportToCSV(includeMetadata) {
+            const scene = appState.currentScene;
+            const rows = [];
+            
+            // Header row
+            const headerRow = ['x', 'y', 'blockTypeId'];
+            
+            if (includeMetadata) {
+                headerRow.push('name', 'color', 'collision', 'damage', 'interactive', 'imageUrl', 'animationFrames');
+            }
+            
+            rows.push(headerRow.join(','));
+            
+            // Data rows
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    if (blockTypeId) {
+                        const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
+                        
+                        if (blockType) {
+                            const row = [x, y, blockTypeId];
+                            
+                            if (includeMetadata) {
+                                row.push(
+                                    `"${blockType.name}"`,
+                                    blockType.color,
+                                    blockType.collision,
+                                    blockType.damage,
+                                    blockType.interactive,
+                                    blockType.imageUrl ? `"${blockType.imageUrl}"` : '',
+                                    blockType.animationFrames
+                                );
+                            }
+                            
+                            rows.push(row.join(','));
+                        }
+                    }
+                }
+            }
+            
+            // Add scene metadata as a comment at the top
+            const metadataComment = `# Scene: ${scene.name}, Size: ${scene.width}x${scene.height}, Cell Size: ${scene.cellSize}px\n`;
+            
+            return metadataComment + rows.join('\n');
+        }
+        
+        function exportToCustomFormat() {
+            const scene = appState.currentScene;
+            const template = document.getElementById('custom-format-template').value;
+            const separator = document.getElementById('custom-format-separator').value.replace(/\\n/g, '\n');
+            const wrapper = document.getElementById('custom-format-wrapper').value.replace(/\\n/g, '\n');
+            const includeEmpty = document.getElementById('custom-format-empty').checked;
+            
+            const cells = [];
+            
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    
+                    if (blockTypeId || includeEmpty) {
+                        const blockType = blockTypeId ? appState.blockTypes.find(bt => bt.id === blockTypeId) : null;
+                        
+                        let cellData = template;
+                        
+                        // Replace placeholders
+                        cellData = cellData.replace(/\${x}/g, x);
+                        cellData = cellData.replace(/\${y}/g, y);
+                        cellData = cellData.replace(/\${sceneName}/g, scene.name);
+                        
+                        if (blockType) {
+                            cellData = cellData.replace(/\${type}/g, blockTypeId);
+                            cellData = cellData.replace(/\${name}/g, blockType.name);
+                            cellData = cellData.replace(/\${color}/g, blockType.color);
+                            cellData = cellData.replace(/\${collision}/g, blockType.collision);
+                            cellData = cellData.replace(/\${damage}/g, blockType.damage);
+                            cellData = cellData.replace(/\${interactive}/g, blockType.interactive);
+                            cellData = cellData.replace(/\${imageUrl}/g, blockType.imageUrl || '');
+                            cellData = cellData.replace(/\${animationFrames}/g, blockType.animationFrames);
+                        } else {
+                            cellData = cellData.replace(/\${type}/g, '');
+                            cellData = cellData.replace(/\${name}/g, '');
+                            cellData = cellData.replace(/\${color}/g, '');
+                            cellData = cellData.replace(/\${collision}/g, 'none');
+                            cellData = cellData.replace(/\${damage}/g, '0');
+                            cellData = cellData.replace(/\${interactive}/g, 'false');
+                            cellData = cellData.replace(/\${imageUrl}/g, '');
+                            cellData = cellData.replace(/\${animationFrames}/g, '1');
+                        }
+                        
+                        cells.push(cellData);
+                    }
+                }
+            }
+            
+            let result = wrapper.replace(/\${data}/g, cells.join(separator));
+            return result;
+        }
+        
+        function downloadExport() {
+            const scene = appState.currentScene;
+            const format = document.getElementById('export-format').value;
+            const data = document.getElementById('export-preview').value;
+            
+            let extension;
+            let mimeType;
+            
+            switch (format) {
+                case 'json':
+                    extension = 'json';
+                    mimeType = 'application/json';
+                    break;
+                case 'csv':
+                    extension = 'csv';
+                    mimeType = 'text/csv';
+                    break;
+                case 'custom':
+                    extension = 'txt';
+                    mimeType = 'text/plain';
+                    break;
+                default:
+                    extension = 'txt';
+                    mimeType = 'text/plain';
+            }
+            
+            const blob = new Blob([data], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = `${scene.name.replace(/\s+/g, '_')}_scene.${extension}`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }
+        
         // Initialize the application
         async function initializeApp() {
             try {
@@ -1101,10 +1418,6 @@
 
                 if (appState.blockTypes.length === 0) {
                     const defaultBlockType = new BlockType(
-                        null, 
-                        'Wall', 
-                        '#3498db',
-                        { collision: 'solid' }
                     );
                     await dbOps.saveBlockType(defaultBlockType);
                     appState.blockTypes.push(defaultBlockType);
@@ -1123,11 +1436,9 @@
                 if (appState.scenes.length === 0) {
                     const defaultScene = new Scene(null, 'Default Scene', 20, 15);
                     await dbOps.saveScene(defaultScene);
-                    appState.scenes.push(defaultScene);
-                    appState.currentScene = defaultScene;
                     updateScenesList();
                 } else {
-                    appState.currentScene = appState.scenes[0];
+                    setCurrentScene(appState.scenes[0]);
                 }
                 
                 if (appState.currentScene) {

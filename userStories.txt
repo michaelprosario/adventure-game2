@@ -43,3 +43,11 @@ Dependencies: Editor UI system, grid rendering system
 
 As a level designer, I want to paint cells with different block types so that I can design room layouts.
 Acceptance Criteria: Can select block type and paint on grid cells, brush tool works with mouse input
+
+
+====
+
+As a level designer, I want to export grid scenes to different formats so that I can share with other tools or team members.
+Acceptance Criteria: Can export to JSON, CSV, or custom formats, includes all block type and position data
+Dependencies: Export system, format serialization
+

@@ -1,0 +1,48 @@
+## Bug 001
+
+Given 
+- I am editing an existing scene
+- I have changed to the erase mode tool
+
+When 
+- I erase a cell that already exists
+
+Then
+- I receive an error
+- Uncaught TypeError: scene.setCell is not a function
+    at handleToolAction (grid-scene-editor.html:768:51)
+    at p.mousePressed (grid-scene-editor.html:675:29)
+
+
+===
+
+## Bug 002
+
+Given
+- I loaded an existing scene
+- Using scene properties, I changed the height to 25
+
+When I click apply settings
+
+I get a javascript error
+grid-scene-editor.html:1067 
+ Uncaught TypeError: appState.currentScene.resize is not a function
+    at HTMLButtonElement.applySceneSettings (grid-scene-editor.html:1067:39)
+
+====
+
+## Bug 003
+
+Given
+- I loaded an existing scene
+- I changed to a random block type
+
+When
+- I try to set a cell on the grid
+
+Then
+- I get the following error
+- Uncaught TypeError: scene.setCell is not a function
+    at handleToolAction (grid-scene-editor.html:755:51)
+    at p.mousePressed (grid-scene-editor.html:675:29)
+
