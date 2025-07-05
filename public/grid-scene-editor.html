@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Scene Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            color: #333;
+        }
+
+        #sidebar {
+            width: 300px;
+            background-color: #f0f0f0;
+            padding: 15px;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            background-color: #e0e0e0;
+        }
+
+        #toolbar {
+            padding: 10px;
+            background-color: #d0d0d0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .panel {
+            background-color: white;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #scenes-list, #block-types-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 5px;
+            margin-top: 10px;
+            background-color: white;
+        }
+
+        .scene-item, .block-type-item {
+            padding: 5px;
+            margin: 2px 0;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .scene-item:hover, .block-type-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .selected {
+            background-color: #e0f0e0;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 50%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .property-row {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .property-name {
+            width: 120px;
+        }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        #export-preview {
+            width: 100%;
+            margin-top: 15px;
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div class="panel" id="project-panel">
+            <h3>Project</h3>
+            <div>
+                <button id="new-scene-btn">New Scene</button>
+                <button id="load-scene-btn">Load Scene</button>
+                <button id="save-scene-btn">Save Scene</button>
+                <button id="export-scene-btn">Export Scene</button>
+            </div>
+            <div id="scenes-list"></div>
+        </div>
+
+        <div class="panel" id="scene-properties">
+            <h3>Scene Properties</h3>
+            <div>
+                <label for="scene-name">Name:</label>
+                <input type="text" id="scene-name" placeholder="Scene name">
+            </div>
+            <div>
+                <label for="grid-width">Width (cells):</label>
+                <input type="number" id="grid-width" min="1" max="100" value="20">
+            </div>
+            <div>
+                <label for="grid-height">Height (cells):</label>
+                <input type="number" id="grid-height" min="1" max="100" value="15">
+            </div>
+            <div>
+                <label for="cell-size">Cell Size (px):</label>
+                <input type="number" id="cell-size" min="10" max="100" value="32">
+            </div>
+            <button id="apply-grid-settings">Apply Settings</button>
+            <button id="duplicate-scene-btn">Duplicate Scene</button>
+        </div>
+
+        <div class="panel" id="block-types-panel">
+            <h3>Block Types</h3>
+            <button id="new-block-type-btn">New Block Type</button>
+            <div id="block-types-list"></div>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="toolbar">
+            <select id="tool-selector">
+                <option value="paint">Paint</option>
+                <option value="erase">Erase</option>
+                <option value="fill">Fill</option>
+                <option value="select">Select</option>
+            </select>
+            
+            <select id="brush-size">
+                <option value="1">1x1</option>
+                <option value="2">2x2</option>
+                <option value="3">3x3</option>
+            </select>
+
+            <div>
+                <label for="grid-toggle">Show Grid:</label>
+                <input type="checkbox" id="grid-toggle" checked>
+            </div>
+
+            <div>
+                <label for="zoom-level">Zoom:</label>
+                <input type="range" id="zoom-level" min="0.5" max="3" step="0.1" value="1">
+                <span id="zoom-value">100%</span>
+            </div>
+        </div>
+        
+        <div id="canvas-container"></div>
+    </div>
+
+    <!-- New Scene Modal -->
+    <div id="new-scene-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-new-scene">&times;</span>
+            <h3>Create New Scene</h3>
+            <div>
+                <label for="new-scene-name">Scene Name:</label>
+                <input type="text" id="new-scene-name" placeholder="My Scene">
+            </div>
+            <div>
+                <label for="new-scene-width">Width (cells):</label>
+                <input type="number" id="new-scene-width" min="1" max="100" value="20">
+            </div>
+            <div>
+                <label for="new-scene-height">Height (cells):</label>
+                <input type="number" id="new-scene-height" min="1" max="100" value="15">
+            </div>
+            <div>
+                <button id="create-scene-btn">Create Scene</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Block Type Modal -->
+    <div id="block-type-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-block-type">&times;</span>
+            <h3>Block Type Properties</h3>
+            <div>
+                <label for="block-type-name">Name:</label>
+                <input type="text" id="block-type-name" placeholder="Block name">
+            </div>
+            <div>
+                <label for="block-type-color">Color:</label>
+                <input type="color" id="block-type-color" value="#3498db">
+            </div>
+            <div>
+                <label for="block-image-url">Image URL (optional):</label>
+                <input type="text" id="block-image-url" placeholder="URL to image">
+            </div>
+            <h4>Gameplay Properties</h4>
+            <div class="property-row">
+                <span class="property-name">Collision:</span>
+                <select id="block-collision">
+                    <option value="none">None</option>
+                    <option value="solid">Solid</option>
+                    <option value="platform">Platform</option>
+                </select>
+            </div>
+            <div class="property-row">
+                <span class="property-name">Damage:</span>
+                <input type="number" id="block-damage" min="0" value="0">
+            </div>
+            <div class="property-row">
+                <span class="property-name">Interactive:</span>
+                <input type="checkbox" id="block-interactive">
+            </div>
+            <div class="property-row">
+                <span class="property-name">Animation Frames:</span>
+                <input type="number" id="block-animation-frames" min="1" value="1">
+            </div>
+            <div>
+                <button id="save-block-type-btn">Save Block Type</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Scene Modal -->
+    <div id="export-scene-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-export-scene">&times;</span>
+            <h3>Export Scene</h3>
+            <div>
+                <label for="export-format">Format:</label>
+                <select id="export-format">
+                    <option value="json">JSON</option>
+                    <option value="csv">CSV</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="custom-format-options" class="hidden">
+                <h4>Custom Format Options</h4>
+                <div>
+                    <label for="custom-format-template">Template:</label>
+                    <textarea id="custom-format-template" rows="6" cols="50" placeholder="Use ${x}, ${y}, ${type}, ${name}, ${color} as placeholders">// Grid data for scene: ${sceneName}
+{x: ${x}, y: ${y}, type: "${name}"}</textarea>
+                </div>
+                <div>
+                    <label for="custom-format-separator">Line Separator:</label>
+                    <input type="text" id="custom-format-separator" value=",&#10;" placeholder="e.g. comma + newline">
+                </div>
+                <div>
+                    <label for="custom-format-wrapper">Wrapper:</label>
+                    <input type="text" id="custom-format-wrapper" value="[&#10;${data}&#10;]" placeholder="e.g. [ ${data} ]">
+                </div>
+                <div>
+                    <label for="custom-format-empty">Include Empty Cells:</label>
+                    <input type="checkbox" id="custom-format-empty">
+                </div>
+            </div>
+            <div class="property-row">
+                <label for="include-metadata">Include Metadata:</label>
+                <input type="checkbox" id="include-metadata" checked>
+            </div>
+            <div class="property-row">
+                <label for="export-pretty-print">Pretty Print:</label>
+                <input type="checkbox" id="export-pretty-print" checked>
+            </div>
+            <div>
+                <button id="generate-export-btn">Generate Export</button>
+                <button id="download-export-btn" class="hidden">Download</button>
+            </div>
+            <div>
+                <textarea id="export-preview" rows="10" cols="50" readonly class="hidden"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Database Configuration
+        const DB_NAME = 'GridSceneEditorDB';
+        const DB_VERSION = 1;
+        const SCENES_STORE = 'scenes';
+        const BLOCK_TYPES_STORE = 'blockTypes';
+        let db;
+
+        // Application State
+        class AppState {
+            constructor() {
+                this.scenes = [];
+                this.blockTypes = [];
+                this.currentScene = null;
+                this.currentBlockType = null;
+                this.currentTool = 'paint';
+                this.brushSize = 1;
+                this.showGrid = true;
+                this.zoomLevel = 1;
+                this.isEditing = false;
+            }
+        }
+        
+        const appState = new AppState();
+
+        // Database Initialization
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    
+                    if (!db.objectStoreNames.contains(SCENES_STORE)) {
+                        const scenesStore = db.createObjectStore(SCENES_STORE, { keyPath: 'id' });
+                        scenesStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    if (!db.objectStoreNames.contains(BLOCK_TYPES_STORE)) {
+                        const blockTypesStore = db.createObjectStore(BLOCK_TYPES_STORE, { keyPath: 'id' });
+                        blockTypesStore.createIndex('name', 'name', { unique: false });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log('Database initialized successfully');
+                    resolve(db);
+                };
+
+                request.onerror = (event) => {
+                    console.error('Database error:', event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        // Scene Class
+        class Scene {
+            constructor(id, name, width, height, cellSize = 32) {
+                this.id = id || crypto.randomUUID();
+                this.name = name;
+                this.width = width;
+                this.height = height;
+                this.cellSize = cellSize;
+                this.grid = Array(height).fill().map(() => Array(width).fill(null));
+                this.createdAt = new Date();
+                this.updatedAt = new Date();
+            }
+
+            resize(width, height) {
+                const newGrid = Array(height).fill().map(() => Array(width).fill(null));
+                
+                for (let y = 0; y < Math.min(this.height, height); y++) {
+                    for (let x = 0; x < Math.min(this.width, width); x++) {
+                        newGrid[y][x] = this.grid[y][x];
+                    }
+                }
+
+                this.width = width;
+                this.height = height;
+                this.grid = newGrid;
+                this.updatedAt = new Date();
+            }
+
+            setCell(x, y, blockTypeId) {
+                if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+                    this.grid[y][x] = blockTypeId;
+                    this.updatedAt = new Date();
+                }
+            }
+
+            getCell(x, y) {
+                if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+                    return this.grid[y][x];
+                }
+                return null;
+            }
+
+            fillArea(startX, startY, blockTypeId) {
+                const targetValue = this.getCell(startX, startY);
+                if (targetValue === blockTypeId) return;
+                
+                const floodFill = (x, y) => {
+                    if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+                    if (this.getCell(x, y) !== targetValue) return;
+                    
+                    this.setCell(x, y, blockTypeId);
+                    
+                    floodFill(x + 1, y);
+                    floodFill(x - 1, y);
+                    floodFill(x, y + 1);
+                    floodFill(x, y - 1);
+                };
+                
+                floodFill(startX, startY);
+            }
+
+            duplicate() {
+                const newScene = new Scene(
+                    crypto.randomUUID(),
+                    `${this.name} (Copy)`,
+                    this.width,
+                    this.height,
+                    this.cellSize
+                );
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        newScene.grid[y][x] = this.grid[y][x];
+                    }
+                }
+                
+                return newScene;
+            }
+        }
+
+        // Block Type Class
+        class BlockType {
+            constructor(id, name, color, properties = {}) {
+                this.id = id || crypto.randomUUID();
+                this.name = name;
+                this.color = color || '#3498db';
+                this.imageUrl = properties.imageUrl || '';
+                this.collision = properties.collision || 'none';
+                this.damage = properties.damage || 0;
+                this.interactive = properties.interactive || false;
+                this.animationFrames = properties.animationFrames || 1;
+                this.createdAt = new Date();
+                this.updatedAt = new Date();
+            }
+        }
+
+        // Database Operations
+        const dbOps = {
+            saveScene(scene) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SCENES_STORE], 'readwrite');
+                    const store = transaction.objectStore(SCENES_STORE);
+                    const request = store.put(scene);
+                    
+                    request.onsuccess = () => resolve(scene);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            getScenes() {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SCENES_STORE], 'readonly');
+                    const store = transaction.objectStore(SCENES_STORE);
+                    const request = store.getAll();
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            getSceneById(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SCENES_STORE], 'readonly');
+                    const store = transaction.objectStore(SCENES_STORE);
+                    const request = store.get(id);
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            deleteScene(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SCENES_STORE], 'readwrite');
+                    const store = transaction.objectStore(SCENES_STORE);
+                    const request = store.delete(id);
+                    
+                    request.onsuccess = () => resolve(true);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            saveBlockType(blockType) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([BLOCK_TYPES_STORE], 'readwrite');
+                    const store = transaction.objectStore(BLOCK_TYPES_STORE);
+                    const request = store.put(blockType);
+                    
+                    request.onsuccess = () => resolve(blockType);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            getBlockTypes() {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([BLOCK_TYPES_STORE], 'readonly');
+                    const store = transaction.objectStore(BLOCK_TYPES_STORE);
+                    const request = store.getAll();
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            getBlockTypeById(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([BLOCK_TYPES_STORE], 'readonly');
+                    const store = transaction.objectStore(BLOCK_TYPES_STORE);
+                    const request = store.get(id);
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            
+            deleteBlockType(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([BLOCK_TYPES_STORE], 'readwrite');
+                    const store = transaction.objectStore(BLOCK_TYPES_STORE);
+                    const request = store.delete(id);
+                    
+                    request.onsuccess = () => resolve(true);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+        };
+
+        // P5.js sketch
+        let p5Instance;
+
+        function createP5Sketch() {
+            const canvasContainer = document.getElementById('canvas-container');
+            
+            while (canvasContainer.firstChild) {
+                canvasContainer.removeChild(canvasContainer.firstChild);
+            }
+            
+            p5Instance = new p5((p) => {
+                let offsetX = 0;
+                let offsetY = 0;
+                let isDragging = false;
+                let lastMouseX = 0;
+                let lastMouseY = 0;
+                let blockTypeImages = {};
+                
+                p.setup = function() {
+                    const canvas = p.createCanvas(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+                    canvas.parent(canvasContainer);
+                    preloadBlockTypeImages();
+                };
+                
+                p.draw = function() {
+                    p.background(50);
+                    
+                    if (!appState.currentScene) return;
+                    
+                    const scene = appState.currentScene;
+                    const cellSize = scene.cellSize * appState.zoomLevel;
+                    
+                    const sceneWidth = scene.width * cellSize;
+                    const sceneHeight = scene.height * cellSize;
+                    
+                    if (sceneWidth < p.width) {
+                        offsetX = (p.width - sceneWidth) / 2;
+                    }
+                    if (sceneHeight < p.height) {
+                        offsetY = (p.height - sceneHeight) / 2;
+                    }
+                    
+                    offsetX = Math.min(p.width / 2, Math.max(-sceneWidth + p.width / 2, offsetX));
+                    offsetY = Math.min(p.height / 2, Math.max(-sceneHeight + p.height / 2, offsetY));
+                    
+                    p.push();
+                    p.translate(offsetX, offsetY);
+                    
+                    for (let y = 0; y < scene.height; y++) {
+                        for (let x = 0; x < scene.width; x++) {
+                            const blockTypeId = scene.grid[y][x];
+                            
+                            if (blockTypeId) {
+                                const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
+                                
+                                if (blockType) {
+                                    p.fill(blockType.color);
+                                    p.rect(x * cellSize, y * cellSize, cellSize, cellSize);
+                                    
+                                    if (blockType.imageUrl && blockTypeImages[blockType.id]) {
+                                        p.image(
+                                            blockTypeImages[blockType.id],
+                                            x * cellSize,
+                                            y * cellSize,
+                                            cellSize,
+                                            cellSize
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (appState.showGrid) {
+                        p.stroke(100);
+                        p.strokeWeight(1);
+                        
+                        for (let x = 0; x <= scene.width; x++) {
+                            p.line(x * cellSize, 0, x * cellSize, scene.height * cellSize);
+                        }
+                        
+                        for (let y = 0; y <= scene.height; y++) {
+                            p.line(0, y * cellSize, scene.width * cellSize, y * cellSize);
+                        }
+                    }
+                    
+                    if (appState.currentTool === 'paint' && appState.currentBlockType) {
+                        const mouseGridX = Math.floor((p.mouseX - offsetX) / cellSize);
+                        const mouseGridY = Math.floor((p.mouseY - offsetY) / cellSize);
+                        
+                        if (mouseGridX >= 0 && mouseGridX < scene.width && mouseGridY >= 0 && mouseGridY < scene.height) {
+                            const brushSize = parseInt(appState.brushSize);
+                            p.noFill();
+                            p.stroke(255, 255, 0);
+                            p.strokeWeight(2);
+                            p.rect(
+                                mouseGridX * cellSize,
+                                mouseGridY * cellSize,
+                                cellSize * brushSize,
+                                cellSize * brushSize
+                            );
+                        }
+                    }
+                    
+                    p.pop();
+                };
+                
+                p.mousePressed = function() {
+                    if (p.mouseX >= 0 && p.mouseX < p.width && p.mouseY >= 0 && p.mouseY < p.height) {
+                        if (p.keyIsDown(p.CONTROL) || p.keyIsDown(p.ALT) || appState.currentTool === 'select') {
+                            isDragging = true;
+                            lastMouseX = p.mouseX;
+                            lastMouseY = p.mouseY;
+                        } else if (appState.currentScene) {
+                            handleToolAction();
+                        }
+                    }
+                };
+                
+                p.mouseDragged = function() {
+                    if (isDragging) {
+                        offsetX += (p.mouseX - lastMouseX);
+                        offsetY += (p.mouseY - lastMouseY);
+                        lastMouseX = p.mouseX;
+                        lastMouseY = p.mouseY;
+                    } else if (appState.currentScene) {
+                        handleToolAction();
+                    }
+                };
+                
+                p.mouseReleased = function() {
+                    isDragging = false;
+                    
+                    if (appState.isEditing && appState.currentScene) {
+                        appState.isEditing = false;
+                        dbOps.saveScene(appState.currentScene)
+                            .then(() => console.log('Scene saved after edit'))
+                            .catch(err => console.error('Error saving scene:', err));
+                    }
+                };
+                
+                p.mouseWheel = function(event) {
+                    const zoomChange = -event.delta * 0.001;
+                    const newZoom = Math.max(0.1, Math.min(5, appState.zoomLevel + zoomChange));
+                    
+                    if (newZoom !== appState.zoomLevel) {
+                        const mouseXRelative = p.mouseX - offsetX;
+                        const mouseYRelative = p.mouseY - offsetY;
+                        
+                        const zoomRatio = newZoom / appState.zoomLevel;
+                        appState.zoomLevel = newZoom;
+                        
+                        offsetX = p.mouseX - mouseXRelative * zoomRatio;
+                        offsetY = p.mouseY - mouseYRelative * zoomRatio;
+                        
+                        document.getElementById('zoom-value').textContent = `${Math.round(newZoom * 100)}%`;
+                        document.getElementById('zoom-level').value = newZoom;
+                    }
+                    
+                    return false;
+                };
+                
+                function handleToolAction() {
+                    if (!appState.currentScene) return;
+                    if (appState.currentTool === 'paint' && !appState.currentBlockType) return;
+
+                    const scene = appState.currentScene;
+                    const cellSize = scene.cellSize * appState.zoomLevel;
+                    
+                    const gridX = Math.floor((p.mouseX - offsetX) / cellSize);
+                    const gridY = Math.floor((p.mouseY - offsetY) / cellSize);
+                    
+                    if (gridX >= 0 && gridX < scene.width && gridY >= 0 && gridY < scene.height) {
+                        const brushSize = parseInt(appState.brushSize);
+                        
+                        switch (appState.currentTool) {
+                            case 'paint':
+                                for (let by = 0; by < brushSize; by++) {
+                                    for (let bx = 0; bx < brushSize; bx++) {
+                                        const x = gridX + bx;
+                                        const y = gridY + by;
+                                        if (x < scene.width && y < scene.height) {
+                                            scene.setCell(x, y, appState.currentBlockType.id);
+                                        }
+                                    }
+                                }
+                                break;
+                                
+                            case 'erase':
+                                for (let by = 0; by < brushSize; by++) {
+                                    for (let bx = 0; bx < brushSize; bx++) {
+                                        const x = gridX + bx;
+                                        const y = gridY + by;
+                                        if (x < scene.width && y < scene.height) {
+                                            scene.setCell(x, y, null);
+                                        }
+                                    }
+                                }
+                                break;
+                                
+                            case 'fill':
+                                scene.fillArea(gridX, gridY, appState.currentBlockType.id);
+                                break;
+                        }
+                        
+                        appState.isEditing = true;
+                    }
+                }
+                
+                function preloadBlockTypeImages() {
+                    blockTypeImages = {};
+                    
+                    appState.blockTypes.forEach(blockType => {
+                        if (blockType.imageUrl) {
+                            p.loadImage(
+                                blockType.imageUrl,
+                                img => {
+                                    blockTypeImages[blockType.id] = img;
+                                },
+                                () => console.error(`Failed to load image for ${blockType.name}`)
+                            );
+                        }
+                    });
+                }
+                
+                p.refreshImages = preloadBlockTypeImages;
+                p.resetView = function() {
+                    offsetX = 0;
+                    offsetY = 0;
+                    appState.zoomLevel = 1;
+                    document.getElementById('zoom-value').textContent = '100%';
+                    document.getElementById('zoom-level').value = 1;
+                };
+            });
+        }
+        
+        // UI Event Handlers
+        function setupEventListeners() {
+            document.getElementById('new-scene-btn').addEventListener('click', () => {
+                document.getElementById('new-scene-modal').style.display = 'block';
+            });
+            
+            document.getElementById('close-new-scene').addEventListener('click', () => {
+                document.getElementById('new-scene-modal').style.display = 'none';
+            });
+            
+            document.getElementById('create-scene-btn').addEventListener('click', createNewScene);
+            
+            document.getElementById('save-scene-btn').addEventListener('click', saveCurrentScene);
+            
+            document.getElementById('load-scene-btn').addEventListener('click', loadScenesList);
+            
+            document.getElementById('apply-grid-settings').addEventListener('click', applySceneSettings);
+            
+            document.getElementById('duplicate-scene-btn').addEventListener('click', duplicateCurrentScene);
+            
+            document.getElementById('export-scene-btn').addEventListener('click', () => {
+                if (!appState.currentScene) {
+                    alert('No scene is currently active.');
+                    return;
+                }
+                document.getElementById('export-scene-modal').style.display = 'block';
+                document.getElementById('export-preview').classList.add('hidden');
+                document.getElementById('download-export-btn').classList.add('hidden');
+            });
+            
+            document.getElementById('close-export-scene').addEventListener('click', () => {
+                document.getElementById('export-scene-modal').style.display = 'none';
+            });
+            
+            document.getElementById('export-format').addEventListener('change', (e) => {
+                const customOptions = document.getElementById('custom-format-options');
+                if (e.target.value === 'custom') {
+                    customOptions.classList.remove('hidden');
+                } else {
+                    customOptions.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('generate-export-btn').addEventListener('click', generateExport);
+            
+            document.getElementById('download-export-btn').addEventListener('click', downloadExport);
+            
+            document.getElementById('new-block-type-btn').addEventListener('click', () => {
+                document.getElementById('block-type-name').value = '';
+                document.getElementById('block-type-color').value = '#3498db';
+                document.getElementById('block-image-url').value = '';
+                document.getElementById('block-collision').value = 'none';
+                document.getElementById('block-damage').value = '0';
+                document.getElementById('block-interactive').checked = false;
+                document.getElementById('block-animation-frames').value = '1';
+                
+                document.getElementById('block-type-modal').style.display = 'block';
+            });
+            
+            document.getElementById('close-block-type').addEventListener('click', () => {
+                document.getElementById('block-type-modal').style.display = 'none';
+            });
+            
+            document.getElementById('save-block-type-btn').addEventListener('click', saveBlockType);
+            
+            document.getElementById('tool-selector').addEventListener('change', (e) => {
+                appState.currentTool = e.target.value;
+            });
+            
+            document.getElementById('brush-size').addEventListener('change', (e) => {
+                appState.brushSize = e.target.value;
+            });
+            
+            document.getElementById('grid-toggle').addEventListener('change', (e) => {
+                appState.showGrid = e.target.checked;
+            });
+            
+            document.getElementById('zoom-level').addEventListener('input', (e) => {
+                appState.zoomLevel = parseFloat(e.target.value);
+                document.getElementById('zoom-value').textContent = `${Math.round(appState.zoomLevel * 100)}%`;
+            });
+            
+            document.getElementById('scene-name').addEventListener('change', (e) => {
+                if (appState.currentScene) {
+                    appState.currentScene.name = e.target.value;
+                    dbOps.saveScene(appState.currentScene)
+                        .then(() => console.log('Scene name updated'))
+                        .catch(err => console.error('Error saving scene name:', err));
+                }
+            });
+            
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                if (p5Instance) {
+                    p5Instance.resizeCanvas(
+                        document.getElementById('canvas-container').offsetWidth,
+                        document.getElementById('canvas-container').offsetHeight
+                    );
+                }
+            });
+        }
+
+        // UI Action Functions
+        function createNewScene() {
+            const nameInput = document.getElementById('new-scene-name');
+            const widthInput = document.getElementById('new-scene-width');
+            const heightInput = document.getElementById('new-scene-height');
+            
+            const name = nameInput.value.trim() || 'Untitled Scene';
+            const width = parseInt(widthInput.value) || 20;
+            const height = parseInt(heightInput.value) || 15;
+            
+            const newScene = new Scene(null, name, width, height);
+            
+            dbOps.saveScene(newScene)
+                .then(scene => {
+                    appState.scenes.push(scene);
+                    setCurrentScene(scene);
+                    document.getElementById('new-scene-modal').style.display = 'none';
+                    updateScenesList();
+                })
+                .catch(err => console.error('Error creating scene:', err));
+        }
+        
+        function saveCurrentScene() {
+            if (appState.currentScene) {
+                dbOps.saveScene(appState.currentScene)
+                    .then(() => {
+                        alert(`Scene "${appState.currentScene.name}" saved successfully.`);
+                    })
+                    .catch(err => console.error('Error saving scene:', err));
+            } else {
+                alert('No scene is currently active.');
+            }
+        }
+        
+        function loadScenesList() {
+            dbOps.getScenes()
+                .then(scenes => {
+                    appState.scenes = scenes.map(s => Object.assign(new Scene(s.id, s.name, s.width, s.height, s.cellSize), s));
+                    updateScenesList();
+                })
+                .catch(err => console.error('Error loading scenes:', err));
+        }
+        
+        function updateScenesList() {
+            const scenesList = document.getElementById('scenes-list');
+            scenesList.innerHTML = '';
+            
+            if (appState.scenes.length === 0) {
+                scenesList.innerHTML = '<div class="scene-item">No scenes available</div>';
+                return;
+            }
+            
+            appState.scenes.forEach(scene => {
+                const sceneItem = document.createElement('div');
+                sceneItem.classList.add('scene-item');
+                if (appState.currentScene && scene.id === appState.currentScene.id) {
+                    sceneItem.classList.add('selected');
+                }
+                
+                sceneItem.textContent = `${scene.name} (${scene.width}x${scene.height})`;
+                
+                sceneItem.addEventListener('click', () => {
+                    loadScene(scene.id);
+                });
+                
+                scenesList.appendChild(sceneItem);
+            });
+        }
+        
+        function updateBlockTypesList() {
+            const blockTypesList = document.getElementById('block-types-list');
+            blockTypesList.innerHTML = '';
+            
+            if (appState.blockTypes.length === 0) {
+                blockTypesList.innerHTML = '<div class="block-type-item">No block types available</div>';
+                return;
+            }
+            
+            appState.blockTypes.forEach(blockType => {
+                const blockTypeItem = document.createElement('div');
+                blockTypeItem.classList.add('block-type-item');
+                if (appState.currentBlockType && blockType.id === appState.currentBlockType.id) {
+                    blockTypeItem.classList.add('selected');
+                }
+                
+                const colorPreview = document.createElement('span');
+                colorPreview.classList.add('color-preview');
+                colorPreview.style.backgroundColor = blockType.color;
+                
+                blockTypeItem.appendChild(colorPreview);
+                blockTypeItem.appendChild(document.createTextNode(blockType.name));
+                
+                blockTypeItem.addEventListener('click', () => {
+                    selectBlockType(blockType);
+                });
+                
+                blockTypesList.appendChild(blockTypeItem);
+            });
+        }
+        
+        function loadScene(id) {
+            dbOps.getSceneById(id)
+                .then(sceneData => {
+                    if (sceneData) {
+                        const scene = Object.assign(new Scene(sceneData.id, sceneData.name, sceneData.width, sceneData.height, sceneData.cellSize), sceneData);
+                        setCurrentScene(scene);
+                    } else {
+                        console.error('Scene not found:', id);
+                    }
+                })
+                .catch(err => console.error('Error loading scene:', err));
+        }
+        
+        function setCurrentScene(scene) {
+            appState.currentScene = scene;
+            
+            document.getElementById('scene-name').value = scene.name;
+            document.getElementById('grid-width').value = scene.width;
+            document.getElementById('grid-height').value = scene.height;
+            document.getElementById('cell-size').value = scene.cellSize;
+            
+            updateScenesList();
+            
+            if (p5Instance && p5Instance.resetView) {
+                p5Instance.resetView();
+            }
+        }
+        
+        function applySceneSettings() {
+            if (!appState.currentScene) {
+                alert('No scene is currently active.');
+                return;
+            }
+            
+            const width = parseInt(document.getElementById('grid-width').value) || appState.currentScene.width;
+            const height = parseInt(document.getElementById('grid-height').value) || appState.currentScene.height;
+            const name = document.getElementById('scene-name').value.trim() || appState.currentScene.name;
+            const cellSize = parseInt(document.getElementById('cell-size').value) || appState.currentScene.cellSize;
+            
+            appState.currentScene.name = name;
+            
+            if (cellSize !== appState.currentScene.cellSize) {
+                appState.currentScene.cellSize = cellSize;
+            }
+            
+            if (width !== appState.currentScene.width || height !== appState.currentScene.height) {
+                appState.currentScene.resize(width, height);
+            }
+            
+            dbOps.saveScene(appState.currentScene)
+                .then(() => {
+                    updateScenesList();
+                    alert('Scene settings applied successfully.');
+                })
+                .catch(err => console.error('Error applying scene settings:', err));
+        }
+        
+        function duplicateCurrentScene() {
+            if (!appState.currentScene) {
+                alert('No scene is currently active.');
+                return;
+            }
+            
+            const duplicatedScene = appState.currentScene.duplicate();
+            
+            dbOps.saveScene(duplicatedScene)
+                .then(scene => {
+                    appState.scenes.push(scene);
+                    setCurrentScene(scene);
+                    updateScenesList();
+                    alert('Scene duplicated successfully.');
+                })
+                .catch(err => console.error('Error duplicating scene:', err));
+        }
+        
+        function saveBlockType() {
+            const name = document.getElementById('block-type-name').value.trim() || 'Untitled Block';
+            const color = document.getElementById('block-type-color').value;
+            
+            const properties = {
+                imageUrl: document.getElementById('block-image-url').value.trim(),
+                collision: document.getElementById('block-collision').value,
+                damage: parseInt(document.getElementById('block-damage').value) || 0,
+                interactive: document.getElementById('block-interactive').checked,
+                animationFrames: parseInt(document.getElementById('block-animation-frames').value) || 1
+            };
+            
+            let blockType;
+            
+            if (appState.currentBlockType && 
+                document.getElementById('block-type-modal').dataset.editing === 'true') {
+                blockType = appState.currentBlockType;
+                blockType.name = name;
+                blockType.color = color;
+                blockType.imageUrl = properties.imageUrl;
+                blockType.collision = properties.collision;
+                blockType.damage = properties.damage;
+                blockType.interactive = properties.interactive;
+                blockType.animationFrames = properties.animationFrames;
+                blockType.updatedAt = new Date();
+            } else {
+                blockType = new BlockType(null, name, color, properties);
+            }
+            
+            dbOps.saveBlockType(blockType)
+                .then(savedBlockType => {
+                    if (!appState.blockTypes.some(bt => bt.id === savedBlockType.id)) {
+                        appState.blockTypes.push(savedBlockType);
+                    }
+                    
+                    selectBlockType(savedBlockType);
+                    updateBlockTypesList();
+                    
+                    if (p5Instance && p5Instance.refreshImages) {
+                        p5Instance.refreshImages();
+                    }
+                    
+                    document.getElementById('block-type-modal').style.display = 'none';
+                })
+                .catch(err => console.error('Error saving block type:', err));
+        }
+        
+        function selectBlockType(blockType) {
+            appState.currentBlockType = blockType;
+            updateBlockTypesList();
+        }
+        
+        function editBlockType(blockType) {
+            document.getElementById('block-type-name').value = blockType.name;
+            document.getElementById('block-type-color').value = blockType.color;
+            document.getElementById('block-image-url').value = blockType.imageUrl || '';
+            document.getElementById('block-collision').value = blockType.collision || 'none';
+            document.getElementById('block-damage').value = blockType.damage || '0';
+            document.getElementById('block-interactive').checked = blockType.interactive || false;
+            document.getElementById('block-animation-frames').value = blockType.animationFrames || '1';
+            
+            document.getElementById('block-type-modal').dataset.editing = 'true';
+            document.getElementById('block-type-modal').style.display = 'block';
+        }
+        
+        // Scene Export Functions
+        function generateExport() {
+            if (!appState.currentScene) {
+                alert('No scene is currently active.');
+                return;
+            }
+            
+            const format = document.getElementById('export-format').value;
+            const includeMetadata = document.getElementById('include-metadata').checked;
+            const prettyPrint = document.getElementById('export-pretty-print').checked;
+            
+            let exportData;
+            
+            switch (format) {
+                case 'json':
+                    exportData = exportToJSON(includeMetadata, prettyPrint);
+                    break;
+                case 'csv':
+                    exportData = exportToCSV(includeMetadata);
+                    break;
+                case 'custom':
+                    exportData = exportToCustomFormat();
+                    break;
+                default:
+                    alert('Unsupported export format');
+                    return;
+            }
+            
+            const previewElement = document.getElementById('export-preview');
+            previewElement.value = exportData;
+            previewElement.classList.remove('hidden');
+            
+            document.getElementById('download-export-btn').classList.remove('hidden');
+        }
+        
+        function exportToJSON(includeMetadata, prettyPrint) {
+            const scene = appState.currentScene;
+            const exportObj = {
+                id: scene.id,
+                name: scene.name,
+                width: scene.width,
+                height: scene.height,
+                cellSize: scene.cellSize,
+                createdAt: scene.createdAt,
+                updatedAt: scene.updatedAt,
+                grid: []
+            };
+            
+            // Convert grid to a more portable format
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    if (blockTypeId) {
+                        const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
+                        
+                        if (blockType) {
+                            const cell = {
+                                x: x,
+                                y: y,
+                                blockTypeId: blockTypeId
+                            };
+                            
+                            if (includeMetadata) {
+                                cell.blockType = {
+                                    name: blockType.name,
+                                    color: blockType.color,
+                                    collision: blockType.collision,
+                                    damage: blockType.damage,
+                                    interactive: blockType.interactive
+                                };
+                                
+                                if (blockType.imageUrl) {
+                                    cell.blockType.imageUrl = blockType.imageUrl;
+                                }
+                                
+                                if (blockType.animationFrames > 1) {
+                                    cell.blockType.animationFrames = blockType.animationFrames;
+                                }
+                            }
+                            
+                            exportObj.grid.push(cell);
+                        }
+                    }
+                }
+            }
+            
+            return JSON.stringify(exportObj, null, prettyPrint ? 2 : 0);
+        }
+        
+        function exportToCSV(includeMetadata) {
+            const scene = appState.currentScene;
+            const rows = [];
+            
+            // Header row
+            const headerRow = ['x', 'y', 'blockTypeId'];
+            
+            if (includeMetadata) {
+                headerRow.push('name', 'color', 'collision', 'damage', 'interactive', 'imageUrl', 'animationFrames');
+            }
+            
+            rows.push(headerRow.join(','));
+            
+            // Data rows
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    if (blockTypeId) {
+                        const blockType = appState.blockTypes.find(bt => bt.id === blockTypeId);
+                        
+                        if (blockType) {
+                            const row = [x, y, blockTypeId];
+                            
+                            if (includeMetadata) {
+                                row.push(
+                                    `"${blockType.name}"`,
+                                    blockType.color,
+                                    blockType.collision,
+                                    blockType.damage,
+                                    blockType.interactive,
+                                    blockType.imageUrl ? `"${blockType.imageUrl}"` : '',
+                                    blockType.animationFrames
+                                );
+                            }
+                            
+                            rows.push(row.join(','));
+                        }
+                    }
+                }
+            }
+            
+            // Add scene metadata as a comment at the top
+            const metadataComment = `# Scene: ${scene.name}, Size: ${scene.width}x${scene.height}, Cell Size: ${scene.cellSize}px\n`;
+            
+            return metadataComment + rows.join('\n');
+        }
+        
+        function exportToCustomFormat() {
+            const scene = appState.currentScene;
+            const template = document.getElementById('custom-format-template').value;
+            const separator = document.getElementById('custom-format-separator').value.replace(/\\n/g, '\n');
+            const wrapper = document.getElementById('custom-format-wrapper').value.replace(/\\n/g, '\n');
+            const includeEmpty = document.getElementById('custom-format-empty').checked;
+            
+            const cells = [];
+            
+            for (let y = 0; y < scene.height; y++) {
+                for (let x = 0; x < scene.width; x++) {
+                    const blockTypeId = scene.grid[y][x];
+                    
+                    if (blockTypeId || includeEmpty) {
+                        const blockType = blockTypeId ? appState.blockTypes.find(bt => bt.id === blockTypeId) : null;
+                        
+                        let cellData = template;
+                        
+                        // Replace placeholders
+                        cellData = cellData.replace(/\${x}/g, x);
+                        cellData = cellData.replace(/\${y}/g, y);
+                        cellData = cellData.replace(/\${sceneName}/g, scene.name);
+                        
+                        if (blockType) {
+                            cellData = cellData.replace(/\${type}/g, blockTypeId);
+                            cellData = cellData.replace(/\${name}/g, blockType.name);
+                            cellData = cellData.replace(/\${color}/g, blockType.color);
+                            cellData = cellData.replace(/\${collision}/g, blockType.collision);
+                            cellData = cellData.replace(/\${damage}/g, blockType.damage);
+                            cellData = cellData.replace(/\${interactive}/g, blockType.interactive);
+                            cellData = cellData.replace(/\${imageUrl}/g, blockType.imageUrl || '');
+                            cellData = cellData.replace(/\${animationFrames}/g, blockType.animationFrames);
+                        } else {
+                            cellData = cellData.replace(/\${type}/g, '');
+                            cellData = cellData.replace(/\${name}/g, '');
+                            cellData = cellData.replace(/\${color}/g, '');
+                            cellData = cellData.replace(/\${collision}/g, 'none');
+                            cellData = cellData.replace(/\${damage}/g, '0');
+                            cellData = cellData.replace(/\${interactive}/g, 'false');
+                            cellData = cellData.replace(/\${imageUrl}/g, '');
+                            cellData = cellData.replace(/\${animationFrames}/g, '1');
+                        }
+                        
+                        cells.push(cellData);
+                    }
+                }
+            }
+            
+            let result = wrapper.replace(/\${data}/g, cells.join(separator));
+            return result;
+        }
+        
+        function downloadExport() {
+            const scene = appState.currentScene;
+            const format = document.getElementById('export-format').value;
+            const data = document.getElementById('export-preview').value;
+            
+            let extension;
+            let mimeType;
+            
+            switch (format) {
+                case 'json':
+                    extension = 'json';
+                    mimeType = 'application/json';
+                    break;
+                case 'csv':
+                    extension = 'csv';
+                    mimeType = 'text/csv';
+                    break;
+                case 'custom':
+                    extension = 'txt';
+                    mimeType = 'text/plain';
+                    break;
+                default:
+                    extension = 'txt';
+                    mimeType = 'text/plain';
+            }
+            
+            const blob = new Blob([data], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = `${scene.name.replace(/\s+/g, '_')}_scene.${extension}`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Initialize the application
+        async function initializeApp() {
+            try {
+                await initDB();
+                
+                const blockTypesData = await dbOps.getBlockTypes();
+                appState.blockTypes = blockTypesData.map(bt => Object.assign(new BlockType(bt.id, bt.name, bt.color), bt));
+
+                if (appState.blockTypes.length === 0) {
+                    const defaultBlockType = new BlockType(
+                    );
+                    await dbOps.saveBlockType(defaultBlockType);
+                    appState.blockTypes.push(defaultBlockType);
+                }
+                
+                if (appState.blockTypes.length > 0) {
+                    appState.currentBlockType = appState.blockTypes[0];
+                }
+                
+                updateBlockTypesList();
+                
+                const scenesData = await dbOps.getScenes();
+                appState.scenes = scenesData.map(s => Object.assign(new Scene(s.id, s.name, s.width, s.height, s.cellSize), s));
+                updateScenesList();
+                
+                if (appState.scenes.length === 0) {
+                    const defaultScene = new Scene(null, 'Default Scene', 20, 15);
+                    await dbOps.saveScene(defaultScene);
+                    updateScenesList();
+                } else {
+                    setCurrentScene(appState.scenes[0]);
+                }
+                
+                if (appState.currentScene) {
+                    setCurrentScene(appState.currentScene);
+                }
+                
+                setupEventListeners();
+                createP5Sketch();
+                
+                console.log('Application initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize application:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
