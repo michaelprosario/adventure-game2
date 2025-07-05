@@ -1,0 +1,455 @@
+{
+  "id": "32747d28-0127-4b92-94e2-ab09742892a2",
+  "name": "scene1",
+  "width": 12,
+  "height": 7,
+  "cellSize": 32,
+  "createdAt": "2025-07-05T10:42:50.010Z",
+  "updatedAt": "2025-07-05T10:47:53.074Z",
+  "grid": [
+    {
+      "x": 0,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "blockTypeId": "eaac09e7-ec5b-40d3-9085-fca2e3001951",
+      "blockType": {
+        "name": "door",
+        "color": "#db334c",
+        "collision": "none",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "blockTypeId": "37315b68-1915-49b7-a252-4562f5c21b61",
+      "blockType": {
+        "name": "thing3",
+        "color": "#00ffee",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "blockTypeId": "e2483287-175f-43ba-8722-88a1c84f0204",
+      "blockType": {
+        "name": "thing1",
+        "color": "#47db33",
+        "collision": "none",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "blockTypeId": "e67fee02-270e-49fb-9134-8ef7c17b5ce8",
+      "blockType": {
+        "name": "thing2",
+        "color": "#d8db33",
+        "collision": "none",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "blockTypeId": "37315b68-1915-49b7-a252-4562f5c21b61",
+      "blockType": {
+        "name": "thing3",
+        "color": "#00ffee",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 2,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "blockTypeId": "eaac09e7-ec5b-40d3-9085-fca2e3001951",
+      "blockType": {
+        "name": "door",
+        "color": "#db334c",
+        "collision": "none",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 3,
+      "blockTypeId": "37315b68-1915-49b7-a252-4562f5c21b61",
+      "blockType": {
+        "name": "thing3",
+        "color": "#00ffee",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 4,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "blockTypeId": "37315b68-1915-49b7-a252-4562f5c21b61",
+      "blockType": {
+        "name": "thing3",
+        "color": "#00ffee",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "blockTypeId": "eaac09e7-ec5b-40d3-9085-fca2e3001951",
+      "blockType": {
+        "name": "door",
+        "color": "#db334c",
+        "collision": "none",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "blockTypeId": "5943b01f-8f02-45ad-9234-55fab9f28d42",
+      "blockType": {
+        "name": "wall",
+        "color": "#0099ff",
+        "collision": "solid",
+        "damage": 0,
+        "interactive": false
+      }
+    }
+  ]
+}
